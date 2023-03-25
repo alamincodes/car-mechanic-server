@@ -8,10 +8,6 @@ const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 app.use(cors());
 app.use(express.json());
 
-// geniusCar;
-
-// gIy3R7AcWNZ2rC2J;
-
 const uri =
   `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.5nnavxn.mongodb.net/?retryWrites=true&w=majority`;
 const client = new MongoClient(uri, {
