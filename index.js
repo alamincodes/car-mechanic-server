@@ -2,14 +2,33 @@ const express = require("express");
 const app = express();
 const cors = require("cors");
 const port = process.env.PORT || 5000;
+var jwt = require("jsonwebtoken");
 require("dotenv").config();
 const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 
 app.use(cors());
 app.use(express.json());
 
-const uri =
-  `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.5nnavxn.mongodb.net/?retryWrites=true&w=majority`;
+// jwt
+function verifyJWT(req, res, next) {
+  const authHeader = req.headers.authorization;
+
+  if (!authHeader) {
+    res.status(401).send({ Message: "Unauthorized access" });
+  }
+  const token = authHeader.split(" ")[1];
+
+  jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, function (err, decoded) {
+    if (err) {
+      res.status(401).send({ Message: "Forbidden access " });
+    }
+    req.decoded = decoded;
+    console.log(decoded);
+    next();
+  });
+}
+
+const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.5nnavxn.mongodb.net/?retryWrites=true&w=majority`;
 const client = new MongoClient(uri, {
   useNewUrlParser: true,
   useUnifiedTopology: true,
@@ -21,6 +40,13 @@ async function run() {
     const allServices = client.db("geniusCar").collection("allServices");
     const ordersCollection = client.db("geniusCar").collection("orders");
 
+    app.post("/JWT", (req, res) => {
+      const user = req.body;
+      const token = jwt.sign(user, process.env.ACCESS_TOKEN_SECRET, {
+        expiresIn: "1h",
+      });
+      res.send({ token });
+    });
     // get all services
     app.get("/services", async (req, res) => {
       const query = {};
@@ -37,7 +63,12 @@ async function run() {
     });
 
     // get orders with email
-    app.get("/orders", async (req, res) => {
+    app.get("/orders", verifyJWT, async (req, res) => {
+      const decoded = req.decoded;
+      console.log(decoded.email);
+      if (decoded.email !== req.query.email) {
+        res.status(403).send({ Message: "Unauthorized access" });
+      }
       let query = {};
       if (req.query.email) {
         query = {
