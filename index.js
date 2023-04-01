@@ -49,8 +49,18 @@ async function run() {
     });
     // get all services
     app.get("/services", async (req, res) => {
-      const query = {};
-      const cursor = allServices.find(query);
+      // const query = { price: { $gt: 100 } };
+      const search = req.query.search;
+      let query = {};
+      if (search.length) {
+        query = {
+          $text: { $search: search },
+        };
+      } else {
+        query = {};
+      }
+      const order = req.query.order === "ascending" ? 1 : -1;
+      const cursor = allServices.find(query).sort({ price: order });
       const result = await cursor.toArray();
       res.send(result);
     });
